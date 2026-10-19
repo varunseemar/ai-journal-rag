@@ -8,7 +8,7 @@ Write private daily journal entries, then ask an AI assistant questions about th
 - **Swappable LLM:** local **Ollama** or cloud **OpenRouter**, chosen by environment variables, with no code changes.
 - **Stretch goals:** all three are implemented: streaming answers (token by token over SSE), edit/delete sync with the vectors, and source citations.
 
-Demo video: _add link here_
+**Demo video (2.5 min):** [Watch on Google Drive](https://drive.google.com/file/d/1mJT4aa2HmkBJk8-I-05lWJ8YldUlYHVx/view?usp=sharing): logging in, adding a note, querying it, and the terminal logs of the RAG retrieval.
 
 ---
 
