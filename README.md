@@ -2,7 +2,7 @@
 
 Write private daily journal entries, then ask an AI assistant questions about them ("What did I eat for breakfast on Tuesday?"). Answers come **only** from your own entries, with citations to the dates they came from.
 
-- **Auth:** sign up / log in with email + password; JWT sessions.
+- **Auth:** sign up / log in with email + password (bcrypt hashing, validation, rate limiting); JWT sessions.
 - **Journal CRUD:** create, list, edit and delete entries.
 - **RAG chat:** your question is embedded, matched against **your** entries in a hosted vector database (Neon Postgres + pgvector), and the best excerpts are sent to an LLM that answers from them.
 - **Swappable LLM:** local **Ollama** or cloud **OpenRouter**, chosen by environment variables, with no code changes.
@@ -45,15 +45,15 @@ Request layering: `routes` → `controllers` (HTTP only) → `services` (busines
 
 ### Prerequisites
 
-- **Node.js 20.6+** (uses the built-in `--env-file` flag)
+- **Node.js 20.19+ or 22.12+** (required by Vite; the server also uses Node's built-in `--env-file` flag)
 - A free **[Neon](https://neon.tech)** account
 - Either **[Ollama](https://ollama.com)** installed locally, **or** a free **[OpenRouter](https://openrouter.ai)** API key
 
 ### 1. Clone and install
 
 ```bash
-git clone <this-repo-url> ai-journal
-cd ai-journal
+git clone https://github.com/varunseemar/ai-journal-rag.git
+cd ai-journal-rag
 cd server && npm install
 cd ../client && npm install
 ```
@@ -127,7 +127,7 @@ Open http://localhost:5173, sign up, write an entry and ask about it.
 
 ```bash
 cd server
-npm test                   # unit tests for the chunker and the date parser (node:test)
+npm test                   # unit tests: chunker, date parser, email/password validation (node:test)
 npm run check:isolation    # with the API running: proves user A's data is invisible to user B
 ```
 
@@ -165,7 +165,7 @@ Every user's data is isolated at several independent layers, so one mistake does
 
 ## The RAG pipeline
 
-**Ingestion** (`POST /api/entries`): the entry text is split into chunks ([`chunker.js`](server/src/services/rag/chunker.js)). Each chunk is prefixed with its date (`Journal entry from Tuesday, 14 October 2026:`) and embedded in one batch. The entry and its chunks are then written in **one transaction**. Embedding happens *before* the transaction, so a failure leaves nothing half-written. Editing re-chunks and replaces the vectors in the same transaction as the text change, and deleting cascades.
+**Ingestion** (`POST /api/entries`): the entry text is split into chunks ([`chunker.js`](server/src/services/rag/chunker.js)). Each chunk is prefixed with its date (`Journal entry from Wednesday, 14 October 2026:`) and embedded in one batch. The entry and its chunks are then written in **one transaction**. Embedding happens *before* the transaction, so a failure leaves nothing half-written. Editing re-chunks and replaces the vectors in the same transaction as the text change, and deleting cascades.
 
 **Chunking strategy:** most journal entries are short and are embedded whole. Longer ones are split on paragraph boundaries, then sentence boundaries, into chunks of at most **800 characters**, with the previous chunk's last sentence carried over as overlap. The 800-character limit comes from the embedding model: MiniLM reads at most 256 word-pieces (~1,000 characters) and silently truncates the rest. Adding the date to the embedded text lets questions like "on Tuesday" match the right entry, which plain semantic embeddings can't do on their own.
 
@@ -225,11 +225,12 @@ server/
       rag/                 chunker, ingest, dateParser, retriever, promptBuilder, ragService
     utils/                 logger, errors, SSE helper, dates
   scripts/isolationCheck.js
-  test/                    chunker + dateParser unit tests
+  test/                    unit tests: chunker, dateParser, auth validation
 client/
   src/api/client.js        fetch wrapper + SSE stream reader
-  src/hooks/useAuth.js
-  src/components/          AuthForm, EntryForm, EntryList, Chat
+  src/hooks/useAuth.js     session state (token check on load, logout on 401)
+  src/validation.js        instant email/password feedback (the server re-checks everything)
+  src/components/          AuthForm, EntryForm, EntryList, Chat, ConfirmDialog, Toasts
 ```
 
 ---
