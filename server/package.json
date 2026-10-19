@@ -1,0 +1,30 @@
+{
+  "name": "ai-journal-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personalized AI Journal API: auth, entries CRUD and a RAG chat over Neon Postgres + pgvector",
+  "type": "module",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "dev": "node --env-file=.env --watch src/server.js",
+    "start": "node src/server.js",
+    "start:local": "node --env-file=.env src/server.js",
+    "db:migrate": "node --env-file=.env src/db/migrate.js",
+    "test": "node --test",
+    "check:isolation": "node scripts/isolationCheck.js"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.3.1",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "openai": "^7.38.0",
+    "pg": "^8.23.1",
+    "zod": "^3.25.76"
+  }
+}
